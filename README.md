@@ -248,13 +248,35 @@ To submit the job to the Docker Spark cluster:
 ```bash
 docker compose up -d
 docker cp spark_revenue_by_state.py spark-master:/tmp/spark_revenue_by_state.py
-docker exec -it spark-master /opt/spark/bin/spark-submit \
+docker exec -it spark-master sh -lc '
+mkdir -p /tmp/ivy /tmp/ivy-cache &&
+export IVY_HOME=/tmp/ivy &&
+/opt/spark/bin/spark-submit \
   --master spark://spark-master:7077 \
   --deploy-mode client \
+  --conf spark.jars.ivy=/tmp/ivy-cache \
+  --packages org.apache.hadoop:hadoop-aws:3.3.4,com.amazonaws:aws-java-sdk-bundle:1.12.262 \
   /tmp/spark_revenue_by_state.py
+'
 ```
 
 You can monitor the job in the Spark master UI at `http://localhost:8080`.
+
+If you see this error:
+
+```text
+java.lang.ClassNotFoundException: Class org.apache.hadoop.fs.s3a.S3AFileSystem not found
+```
+
+it means the Spark image does not include the S3A connector jars by default. The `--packages` flag in the command above pulls in the required dependencies for reading from MinIO with `s3a://`.
+
+If you see this error:
+
+```text
+java.io.FileNotFoundException: /nonexistent/.ivy2.5.2/cache/... (No such file or directory)
+```
+
+it means Ivy is trying to write dependency metadata into a non-writable home directory inside the container. The command above fixes that by setting `IVY_HOME=/tmp/ivy` and `spark.jars.ivy=/tmp/ivy-cache`.
 
 ## Accessing MinIO
 
