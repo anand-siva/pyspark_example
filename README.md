@@ -255,7 +255,7 @@ export IVY_HOME=/tmp/ivy &&
   --master spark://spark-master:7077 \
   --deploy-mode client \
   --conf spark.jars.ivy=/tmp/ivy-cache \
-  --packages org.apache.hadoop:hadoop-aws:3.3.4,com.amazonaws:aws-java-sdk-bundle:1.12.262 \
+  --packages org.apache.hadoop:hadoop-aws:3.4.2 \
   /tmp/spark_revenue_by_state.py
 '
 ```
@@ -269,6 +269,8 @@ java.lang.ClassNotFoundException: Class org.apache.hadoop.fs.s3a.S3AFileSystem n
 ```
 
 it means the Spark image does not include the S3A connector jars by default. The `--packages` flag in the command above pulls in the required dependencies for reading from MinIO with `s3a://`.
+
+For this lab, the Spark `4.1.2` container includes Hadoop `3.4.2`, so `hadoop-aws:3.4.2` should be used to match the bundled Hadoop version.
 
 If you see this error:
 
