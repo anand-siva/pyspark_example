@@ -1,12 +1,14 @@
 # PySpark S3 Lab
 
-This lab sets up a local S3-compatible object store with MinIO and seeds it with a large NDJSON transaction dataset for PySpark exercises.
+This lab sets up a local S3-compatible object store with MinIO, seeds it with a large NDJSON transaction dataset, includes a simple linear processing pipeline example, and adds a Spark version of the same revenue-by-state workload.
 
 Current scope:
 
 - Start MinIO with Docker Compose
 - Create a `spark-demo` bucket
 - Seed `transactions/` with synthetic data
+- Run a linear processing pipeline over the seeded files
+- Run the same revenue-by-state aggregation with Spark
 - Prepare a dataset that Spark can read from `s3a://spark-demo/transactions/`
 
 ## Lab Layout
@@ -14,6 +16,8 @@ Current scope:
 - [compose.yml](/Users/amoney/pyspark_example/compose.yml) starts MinIO locally
 - [seed_minio.py](/Users/amoney/pyspark_example/seed_minio.py) generates and uploads synthetic transaction data
 - [setup_test_data.sh](/Users/amoney/pyspark_example/setup_test_data.sh) bootstraps the environment and runs the seed step
+- [2012_script.py](/Users/amoney/pyspark_example/2012_script.py) demonstrates a linear processing pipeline by reading the NDJSON files directly from MinIO and summing revenue by state
+- [spark_revenue_by_state.py](/Users/amoney/pyspark_example/spark_revenue_by_state.py) reads the same dataset with Spark and computes transaction counts plus total revenue by state
 - [requirements.txt](/Users/amoney/pyspark_example/requirements.txt) lists Python dependencies
 
 ## Prerequisites
@@ -169,6 +173,89 @@ docker compose up -d
 python seed_minio.py
 ```
 
+## Linear Processing Example
+
+The lab also includes [2012_script.py](/Users/amoney/pyspark_example/2012_script.py) as a simple end-to-end example of a linear processing pipeline.
+
+What it does:
+
+1. Lists all objects under `transactions/` in the `spark-demo` bucket
+2. Reads each NDJSON file from MinIO
+3. Parses each record one line at a time
+4. Aggregates total revenue by `state`
+5. Prints throughput while processing and a final summary
+
+Run it after the seed step completes:
+
+```bash
+source .venv/bin/activate
+python 2012_script.py
+```
+
+This is intentionally a straightforward Python pipeline. It is useful as a baseline before rewriting the same workload in PySpark.
+
+Sample output:
+
+```text
+$ python 2012_script.py
+Reading transactions/part-00000.ndjson
+100,000 records | 305,220 records/sec
+Reading transactions/part-00001.ndjson
+200,000 records | 338,730 records/sec
+Reading transactions/part-00002.ndjson
+...
+Reading transactions/part-00997.ndjson
+99,800,000 records | 363,998 records/sec
+Reading transactions/part-00998.ndjson
+99,900,000 records | 364,005 records/sec
+Reading transactions/part-00999.ndjson
+100,000,000 records | 363,992 records/sec
+
+Revenue by state:
+CA: $2,527,275,938.51
+FL: $2,525,708,955.14
+IL: $2,525,265,743.70
+MD: $2,525,816,581.76
+NC: $2,523,087,439.59
+NY: $2,526,208,987.55
+PA: $2,524,619,003.08
+TX: $2,524,173,634.13
+VA: $2,524,810,057.78
+WA: $2,523,041,272.07
+
+Processed 100,000,000 records in 274.7s
+```
+
+On this run, the linear Python version took about 4 1/2 minutes to process the full dataset.
+
+## Spark Processing Example
+
+The lab also includes [spark_revenue_by_state.py](/Users/amoney/pyspark_example/spark_revenue_by_state.py), which runs the same revenue-by-state workflow with Spark.
+
+What it does:
+
+1. Creates a `SparkSession`
+2. Connects Spark to MinIO with `s3a`
+3. Reads all JSON files from `s3a://spark-demo/transactions/`
+4. Groups by `state`
+5. Computes `transaction_count` and `total_revenue`
+6. Displays the aggregated result
+
+This script is the distributed version of the same exercise shown in `2012_script.py`, making it useful for comparing a simple linear pipeline to a Spark-based approach.
+
+To submit the job to the Docker Spark cluster:
+
+```bash
+docker compose up -d
+docker cp spark_revenue_by_state.py spark-master:/tmp/spark_revenue_by_state.py
+docker exec -it spark-master /opt/spark/bin/spark-submit \
+  --master spark://spark-master:7077 \
+  --deploy-mode client \
+  /tmp/spark_revenue_by_state.py
+```
+
+You can monitor the job in the Spark master UI at `http://localhost:8080`.
+
 ## Accessing MinIO
 
 - S3 API: `http://localhost:9000`
@@ -199,6 +286,9 @@ spark.conf.set("fs.s3a.connection.ssl.enabled", "false")
 - The current seed volume is intentionally large and may take significant time and disk space.
 - Data is randomly generated each run.
 - Timestamps are written in UTC ISO 8601 format.
+- The seeded end product in MinIO is expected to be about `18.3 GiB - 1000 Objects`.
+- `2012_script.py` is a non-Spark baseline for discussing how a linear pipeline behaves before moving to distributed processing.
+- `spark_revenue_by_state.py` performs the same core aggregation in Spark so you can compare the two approaches directly.
 
 ## Cleanup
 
