@@ -280,6 +280,41 @@ java.io.FileNotFoundException: /nonexistent/.ivy2.5.2/cache/... (No such file or
 
 it means Ivy is trying to write dependency metadata into a non-writable home directory inside the container. The command above fixes that by setting `IVY_HOME=/tmp/ivy` and `spark.jars.ivy=/tmp/ivy-cache`.
 
+Sample output:
+
+```text
+26/06/12 23:51:39 INFO DAGScheduler: ResultStage 9 (collect at /tmp/spark_revenue_by_state.py:31) finished in 40 ms
+26/06/12 23:51:39 INFO DAGScheduler: Job 5 is finished. Cancelling potential speculative or zombie tasks for this job
+26/06/12 23:51:39 INFO TaskSchedulerImpl: Canceling stage 9
+26/06/12 23:51:39 INFO TaskSchedulerImpl: Killing all running tasks in stage 9: Stage finished
+26/06/12 23:51:39 INFO DAGScheduler: Job 5 finished: collect at /tmp/spark_revenue_by_state.py:31, took 41.749375 ms
+Revenue by state:
+CA: $2,527,275,938.51
+FL: $2,525,708,955.14
+IL: $2,525,265,743.70
+MD: $2,525,816,581.76
+NC: $2,523,087,439.59
+NY: $2,526,208,987.55
+PA: $2,524,619,003.08
+TX: $2,524,173,634.13
+VA: $2,524,810,057.78
+WA: $2,523,041,272.07
+
+Transaction count by state:
+CA: 10,005,069
+FL: 10,004,135
+IL: 10,000,918
+MD: 10,002,238
+NC: 9,994,621
+NY: 10,003,472
+PA: 9,999,562
+TX: 9,995,115
+VA: 10,001,618
+WA: 9,993,252
+
+Processed 100,000,000 records in 76.5s
+```
+
 ## Accessing MinIO
 
 - S3 API: `http://localhost:9000`

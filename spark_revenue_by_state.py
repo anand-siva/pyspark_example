@@ -1,6 +1,9 @@
+import time
+
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import sum as spark_sum, count
 
+start = time.time()
 
 spark = (
     SparkSession.builder
@@ -25,6 +28,20 @@ result = (
     .orderBy("state")
 )
 
-result.show(truncate=False)
+rows = result.collect()
+
+print("Revenue by state:")
+for row in rows:
+    print(f"{row['state']}: ${row['total_revenue']:,.2f}")
+
+print()
+print("Transaction count by state:")
+for row in rows:
+    print(f"{row['state']}: {row['transaction_count']:,}")
+
+elapsed = time.time() - start
+
+print()
+print(f"Processed 100,000,000 records in {elapsed:.1f}s")
 
 spark.stop()
