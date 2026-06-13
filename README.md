@@ -349,6 +349,14 @@ spark.conf.set("fs.s3a.connection.ssl.enabled", "false")
 - `2012_script.py` is a non-Spark baseline for discussing how a linear pipeline behaves before moving to distributed processing.
 - `spark_revenue_by_state.py` performs the same core aggregation in Spark so you can compare the two approaches directly.
 
+## Conclusion
+
+This lab shows the performance difference between a simple serial pipeline and a distributed Spark job on the same `100,000,000`-record dataset. The linear Python version finished in about `4.5 minutes`, while the Spark version finished in about `1.1 minutes`.
+
+That means Spark reduced total runtime by about `76%` and delivered roughly a `4x speedup` for the same revenue-by-state aggregation. The result is a practical example of why distributed processing matters once data volume grows beyond what a single-process pipeline handles efficiently.
+
+This is also not the upper limit of performance. Because the Spark job runs on a cluster, it can improve further as you add more workers, CPU, and memory. In other words, the serial version is bounded by one linear execution path, while the Spark version has room to scale with the cluster.
+
 ## Cleanup
 
 Stop MinIO:
